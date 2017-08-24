@@ -1,0 +1,83 @@
+/* loader default CSS */
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg);}
+    to { -webkit-transform: rotate(360deg);}
+}
+
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg);}
+    to { transform: scale(1) rotate(360deg);}
+}
+.dim
+{
+    top: 54px;
+    position: absolute;
+    z-index: 900;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.loader {
+    z-index: 9999;
+    border: 10px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 10px solid gray;
+    width: 80px;
+    height: 80px;
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+}
+#jsheet
+{
+    position: relative;
+    width: 100%;
+    min-height: 800px;
+    /*background-color: #E0E0E0;*/
+}
+.jsheet-contents
+{
+    overflow: auto;
+    width: 100%;
+}
+table.jsheet-table > header > tr > th
+{
+    text-align: center;
+    border: solid black 1px;
+    
+}
+table.jsheet-table > header > tr:first-child > th
+{
+    background-color: #E0E0E0;
+}
+.controll-bar-list
+{
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333333;
+}
+.controll-bar-list-item
+{
+    list-style-type: none;
+    float: left;
+    color: white;
+    min-width: 15px;
+    padding: 5px 10px 5px 10px;
+    margin: 3px 10px 3px 10px;
+    cursor: pointer;
+}
+.controll-bar-list-item:hover
+{
+    background-color: #E0E0E0;
+    color: black;
+}
+
+.controll-bar-list-item:active {
+    background-color: gray;
+    color: white;
+}
+
