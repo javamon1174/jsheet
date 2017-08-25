@@ -32,25 +32,82 @@
 }
 #jsheet
 {
-    position: relative;
-    width: 100%;
-    min-height: 800px;
-    /*background-color: #E0E0E0;*/
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 .jsheet-contents
 {
-    overflow: auto;
+    position: relative;
+    height: 100%;
     width: 100%;
 }
-table.jsheet-table > header > tr > th
+td, th {
+    border: 1px solid #8c8c8c;
+    padding: 0px;
+    word-wrap: break-word;
+    overflow: hidden;
+    /*white-space: nowrap;*/
+    /*padding: 15px 10px 15px 10px;*/
+    /*min-width: 125px;*/
+}
+th
 {
     text-align: center;
-    border: solid black 1px;
-    
-}
-table.jsheet-table > header > tr:first-child > th
-{
+    height: 30px;
     background-color: #E0E0E0;
+}
+td
+{
+    padding: 5px;
+}
+.jsheet-table
+{
+    background-color: #FAFAFA;
+}
+.jsheet-table-header-warp
+{
+    position: relative;
+    margin-right: 15px;
+}
+.jsheet-table-body-warp
+{
+    position: relative;
+    max-height: 100%;
+}
+.jsheet-table-header
+{
+    display: block;
+    max-width: 100%;;
+    overflow: hidden;
+    z-index: 100;
+}
+.jsheet-table-header-fixed
+{
+    position: absolute;
+    top: 0;
+    background: white;
+    z-index: 101;
+}
+.jsheet-table-body
+{
+    display: block;
+    position: absolute;
+    max-width: 100%;
+    max-height: 500px;
+    overflow: auto;
+}
+.jsheet-table-body-fixed
+{
+    position: absolute;
+    display: block;
+    left: 0;
+    background: white;
+    max-height: 485px;
+    overflow: hidden;
+    z-index: 101;
 }
 .controll-bar-list
 {

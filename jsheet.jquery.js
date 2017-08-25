@@ -69,18 +69,11 @@
 
     Plugin.prototype.loadData = function() {
         // make loader options
-        var loader_options = {
-            target: this.element,
-            type: "outer",
-            spin_second: "0.5s",
-            border: "15px",
-            width: "20px",
-            height: "20px",
-            in_color: "#838383",
-            out_color: "rgba(255, 255, 255, 0.7)",
-            dim_top: "0",
-            dim_color: "#E0E0E0",
-            loader_margin: "0px 0px 0px 0px"
+        var loader_options = { //global
+            target:        this.element,
+            type:          "outer",
+            spin_second:   "0.5s",
+            loader_margin: "-150px 0px 0px 0px"
         };
 
         if (this.options.dataMethod) {
@@ -105,108 +98,208 @@
         }
 
         var contents = document.createElement("DIV");
-        contents.className = "jsheet-contents";
-
-        var table = document.createElement("TABLE");
-        table.className = "jsheet-table table";
+        contents.className = "jsheet-table";
 
         var header = this.createHeader();
-        table.appendChild(header);
+        var body   = this.createBody();
 
-        contents.appendChild(table);
-        this.element.appendChild(contents);
-        return;
+        contents.appendChild(header);
+        contents.appendChild(body);
 
-        var body = this.createBody();
-        table.appendChild(body);
-
-
-        contents.appendChild(table);
         this.element.appendChild(contents);
 
-        return this.domLender({
-            terget: this,
-            html: lenderElement
-        });
+
+        this.func("sync");
+
+        // return this.domLender({
+        //     terget: this,
+        //     html: lenderElement
+        // });
     };
 
     // Create Table Header Element / 테이블 헤더 생성
-    Plugin.prototype.createHeader = function() { //check options => [fixedHeader, fixedColumn, fixedCount, controllerBar]
-        var header = document.createElement("HEADER");
-        var col_data = this.options.data.col_data;
+    Plugin.prototype.createHeader = function() {
+        var table_warp_div = document.createElement("DIV");
+        var table          = document.createElement("TABLE");
+        var thead          = document.createElement("THEAD");
+        var col_data       = this.options.data.col_data;
+
+        table_warp_div.className = "jsheet-table-header-warp";
+        table.className = "jsheet-table-header";
+
+        table_warp_div.appendChild(table);
 
         // 그룹 헤더가 존재 할 경우.
         if (this.options.headerGroup) {
-            var group_col_th   = document.createElement("TR");
-            var col_th         = document.createElement("TR");
-            var tmp_group_name = "";
-            var col_span       = 1;
+            var group_col_th   = document.createElement("TR"),
+                col_th         = document.createElement("TR"),
+                tmp_group_name = "",
+                col_span       = 1;
 
             // 헤더 데이터 드로잉 반복문
             for (var idx in col_data) {
-                var th_group              = document.createElement("TH");
-                var th_col                = document.createElement("TH");
+                var info     = JSON.parse(col_data[idx]["CHANGE_COLUMN_INFO"]);
+                var th_group = document.createElement("TH");
+                var th_col   = document.createElement("TH");
 
                 th_col.innerHTML          = col_data[idx]["COMMENT"];
                 th_col.dataset.column_seq = col_data[idx]["COLUMN_SEQ"];
-                th_col.style.minWidth     = col_data[idx]["WIDTH"] + "px";
+                th_col.style.minWidth     = info["WIDTH"] + "px";
 
-                if (idx < this.options.fixedCount)
-                {
-                    th_group.className = "col-fixed";
-                    th_col.className   = "col-fixed";
-                }
-
+                // 그룹인지 아닌지 해당 조건으로 체크
                 if (col_data[idx]["GROUP_NO"] == 0) {
-                    th_group.colSpan = 1;
+                    // 그룹이 아닐 경우
+                    th_group.colSpan   = 1;
                     th_group.innerHTML = col_data[idx]["GROUP_NAME"];
                     group_col_th.appendChild(th_group);
                 } else {
+                    // 그룹일 경우
                     if (tmp_group_name == "") {
-                        col_span = 1;
+                        // 그룹 네임이 없을 경우 첫 그룹으로 간주
+                        col_span       = 1;
                         tmp_group_name = col_data[idx]["GROUP_NAME"];
+
                     } else if (idx == (col_data.length - 1)) {
-                        th_group.colSpan = (col_span + 1);
+                        // 가장 마지막 열 일 경우
+                        th_group.colSpan   = (col_span + 1);
                         th_group.innerHTML = tmp_group_name;
                         group_col_th.appendChild(th_group);
+
                     } else if (tmp_group_name != col_data[idx]["GROUP_NAME"]) {
+                        // 그룹명이 달라질 경우 새로운 그룹으로 매핑
                         th_group.colSpan = col_span;
                         th_group.innerHTML = tmp_group_name;
                         group_col_th.appendChild(th_group);
 
                         col_span = 1;
                         tmp_group_name = col_data[idx]["GROUP_NAME"];
+
                     } else {
+                        // 이전 그룹과 같은 그룹일 경우
                         col_span += 1;
                     }
                 }
+                // 고정 열의 수의 따라 클래스 부여
+                if (this.options.fixedHeader && idx < this.options.fixedCount) {
+                    th_group.className = "col-fixed";
+                    th_col.className   = "col-fixed";
+                    col_th.appendChild(th_col);
+                }
+
                 col_th.appendChild(th_col);
             }
-            header.appendChild(group_col_th);
-            header.appendChild(col_th);
+            thead.appendChild(group_col_th);
+            thead.appendChild(col_th);
+
+            table.appendChild(thead);
+
         }
-        return header;
+        // 그룹 헤더가 없을 경우 else
+        table_warp_div.appendChild(table);
+
+        // fixed 일때
+        if (this.options.fixedHeader)
+        {
+            var c_table  = document.createElement("TABLE"),
+                thead    = document.createElement("THEAD"),
+                tr_group = document.createElement("TR"),
+                tr_col   = document.createElement("TR"),
+                fixed_th = $(table).find("th.col-fixed").clone(),
+                for_idx  = (fixed_th.length/2);
+
+            c_table.className = "jsheet-table-header-fixed";
+
+            for (var i = 0; i < for_idx; i++) {
+                tr_group.appendChild(fixed_th[i]);
+                tr_col.appendChild(fixed_th[i+for_idx]);
+            }
+
+            thead.appendChild(tr_group);
+            thead.appendChild(tr_col);
+            c_table.appendChild(thead);
+            table_warp_div.appendChild(c_table);
+        }
+        return table_warp_div;
     };
 
     // Create Table Body Element / 테이블 바디 생성
     Plugin.prototype.createBody = function() {
-        //check options => [fixedHeader, fixedColumn, fixedCount, controllerBar]
+        var table_warp_div = document.createElement("DIV");
+        var table_warp_body_div = document.createElement("DIV");
+        var table          = document.createElement("TABLE");
+
+        table_warp_div.className = "jsheet-table-body-warp";
+        table.className = "jsheet-table-body";
+
+        var tbody = document.createElement("TBODY");
+        var r     = this.options.data.row_data;
+
+        // 행 드로잉 반복문
+        for (var i in r) {
+            var tr   = document.createElement("TR");
+            var c_d  = r[i]["ROW_LIST"];
+            // 열 드로잉 반복문
+            for (var c_i in c_d) {
+                var td   = document.createElement("TD");
+                var info = JSON.parse(c_d[c_i]["CHANGE_COLUMN_INFO"])
+
+                td.dataset.cglist_seq = c_d[c_i]["CGLIST_SEQ"];
+                td.dataset.column_seq = c_d[c_i]["COLUMN_SEQ"];
+                td.style.minWidth        = info["WIDTH"]+"px";
+                td.style.maxWidth        = info["WIDTH"]+"px";
+                td.innerHTML          = c_d[c_i]["DATA"];
+
+                if (info["FIXED"] == "Y") $(td).addClass('fixed-cell');
+                if (info["TYPE"] != "text" || info["TYPE"] != "textarea") $(td).addClass('disable');
+                tr.appendChild(td);
+
+            }
+            tbody.appendChild(tr);
+            table.appendChild(tbody);
+        }
+
+        // fixed 일때
+        if (this.options.fixedHeader)
+        {
+            var c_table  = document.createElement("TABLE"),
+                tbody    = document.createElement("TBODY"),
+                tr_col   = document.createElement("TR"),
+                o_table  = $(table).find("td.fixed-cell"),
+                fixed_th = o_table.clone(),
+                for_idx  = (fixed_th.length);
+
+            c_table.className = "jsheet-table-body-fixed";
+
+            for (var i = 0; i < for_idx; i++) {
+                // console.log($(fixed_th[i]).height());
+                tr_col.appendChild(fixed_th[i]);
+                if (((i+1) % 3) === 0 )
+                {
+                    tbody.appendChild(tr_col);
+                    tr_col = document.createElement("TR")
+                }
+            }
+            c_table.appendChild(tbody);
+            table_warp_div.appendChild(c_table);
+        }
+        table_warp_div.appendChild(table);
+        return table_warp_div;
     };
 
     // Create ControllerBar Element / 제어창 생성
     Plugin.prototype.createControllerBar = function() {
-        var controll_bar = document.createElement("DIV");
+        var controll_bar       = document.createElement("DIV");
         controll_bar.className = "controll-bar";
 
-        var list = document.createElement("UL");
+        var list       = document.createElement("UL");
         list.className = "controll-bar-list";
 
         for (var item_index in this.options.controllerBarItem) {
             var item = this.options.controllerBarItem[item_index];
-            var li = document.createElement("LI");
+            var li   = document.createElement("LI");
             var span = document.createElement("SPAN");
 
-            li.className = "controll-bar-list-item";
+            li.className   = "controll-bar-list-item";
             span.className = "glyphicon glyphicon-" + item;
 
             li.appendChild(span);
@@ -225,6 +318,19 @@
 
     Plugin.prototype.parser = function() {
         // html 테이블에서 데이터를 파싱
+    };
+
+    Plugin.prototype.sync = function() {
+        // 가로 스크롤 동기화
+        $(".jsheet-table-body").scroll(function(event) {
+            $(".jsheet-table-header").scrollLeft($(this).scrollLeft());
+            $(".jsheet-table-body-fixed").scrollTop($(this).scrollTop());
+        });
+        
+        // 테이블 height 동기화
+        $(".jsheet-table-body").find("tr").each(function(index, el) {
+            $( ".fixed-cell:nth-child("+index+")" ).height($(el).height());
+        });
     };
 
     Plugin.prototype.ajax = function(info) {
