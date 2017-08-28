@@ -45,7 +45,7 @@
     width: 100%;
 }
 td, th {
-    border: 1px solid #8c8c8c;
+    border: 1px solid #E0E0E0;
     padding: 0px;
     word-wrap: break-word;
     overflow: hidden;
@@ -57,7 +57,8 @@ th
 {
     text-align: center;
     height: 30px;
-    background-color: #E0E0E0;
+    background-color: #333333;
+    color: #E0E0E0;
 }
 td
 {
@@ -136,5 +137,11 @@ td
 .controll-bar-list-item:active {
     background-color: gray;
     color: white;
+}
+
+/* table Event CSS */
+td.selected
+{
+    background-color: #E5E5E5 !important;
 }
 
