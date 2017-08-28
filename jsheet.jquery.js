@@ -397,10 +397,6 @@
                 // console.log(key.keyCode);
 
                 switch (key.keyCode) {
-                    case 13:    //enter
-                        console.log("enter");
-                        break;
-
                     case 37:    // arrow left
                             key.preventDefault();
                             var _id = $(".selected").attr("id").split("_");
@@ -460,20 +456,122 @@
                         case 113:    // F2
                             self.edit($(".selected").attr("id"));
                             break;
+
+                        case 83:    // ctrl + s
+                            if (key.ctrlKey)
+                            {
+                                self.save($(".selected").attr("id"));
+                            }
+                            break;
+                        case 90:    // ctrl + z
+                            if (key.ctrlKey)
+                            {
+                                self.undo();
+                            }
+                            break;
+
+                        case 27:    // ESC
+                            self.cancel();
+                            break;
                 }
             }
         });
     };
 
-    Plugin.prototype.edit = function(cell_id) {
+    Plugin.prototype.historyPush = function(data) {
+        return this.options.history.push(data);
+    };
+
+    Plugin.prototype.historyPop = function() {
+        if (this.options.history.length > 0)
+        {
+            var rollback = this.options.history.pop();;
+            $("#"+rollback.cell).html(JSON.parse(rollback.data));
+        }
+    };
+
+    Plugin.prototype.cancel = function() {
+        if ($(".edition").length > 0)
+        {
+            var ori_val =  JSON.parse($(".jsheet-text").attr("data-ori-text"));
+
+            $(".edition")
+               .html(ori_val.replace(/\n/g, "<br>"))
+               .removeClass('edition');
+        }
+    };
+
+    Plugin.prototype.undo = function() {
+        //history pop
+        this.func("historyPop");
+    };
+
+    Plugin.prototype.trVerticalSizeSync = function(cell) {
+        var height = cell.outerHeight();
+        var _class = cell[0].classList;
+        $(".jsheet-table-body").find("."+_class[0]).first().closest("TR").height(height);
+        $(".jsheet-table-body-fixed").find("."+_class[0]).first().closest("TR").height(height);
+        // console.log(cell.className);
+    };
+
+
+    Plugin.prototype.save = function(cell_id) {
+        if ($(".edition").length == 0) return false;
+
+        // 저장 시 현재 셀의 Tr height를 타 테이블에 적용
         var s_cell = $("TD#"+cell_id);
+
+        if (s_cell.hasClass('disable'))
+        {
+            console.log("custom");
+        }
+        else
+        {
+            var text_val  = $(".jsheet-text").val().replace(/\n/g, "<br>");
+            var undo_data = $(".jsheet-text").attr("data-ori-text").replace(/\n/g, "<br>");
+
+            $(s_cell).html(text_val).removeClass('edition');
+        }
+
+        //history push
+        if (undo_data)
+        {
+            this.func("historyPush", {
+                cell : cell_id,
+                data : undo_data,
+            });
+        };
+        return this.func("trVerticalSizeSync", s_cell);
+    };
+
+    Plugin.prototype.edit = function(cell_id) {
+        //init
+        this.func("cancel");
+
+        if ($("TD#"+cell_id).hasClass('edition')) { return ; }
+
+        //start edit
+        var s_cell = $("TD#"+cell_id);
+
         if (s_cell.hasClass('disable'))
         {   // custom
             console.log("custom");
         }
         else
         {   // text
-            console.log("text");
+            var origin_val = s_cell
+                .html()
+                .replace(/\<br\>/g, "\n")
+                .replace(/\<br \/\>/g, "\n");
+
+            s_cell.addClass('edition')
+            .html
+            (
+                $("<TEXTAREA></TEXTAREA>")
+                    .addClass('jsheet-text')
+                    .val(origin_val)
+                    .attr("data-ori-text", JSON.stringify(origin_val))
+            ).find("textarea").focus();
         }
     };
 
@@ -485,18 +583,59 @@
     };
 
     Plugin.prototype.setSelectCell = function(cell_id) {
-        console.log(cell_id);
-
         var s_cell     = $("TD#"+cell_id);
-        var f_selected = s_cell.hasClass('selected');
+        // var f_selected = s_cell.hasClass('selected');
 
         // select class init
         $(this.element).find("TD").removeClass('selected');
 
-        if (!f_selected)
+        if ($(".edition").length > 0)
         {
+            this.func("cancel", cell_id);
+            // this.func("save", cell_id);
+        }
+
+        if (s_cell.length > 0)
+        {
+            var table     = $(".jsheet-table-body");
+            var c_table_w = $(".jsheet-table-body-fixed").width();
+
             //select this cell
             s_cell.addClass('selected');
+
+            // Adjust the scroll position according to cell focus / 셀 위치에 따라 스크롤바 조정
+            var cell_offset = s_cell.offset();
+            var scroll_top  = parseInt(table.height()-cell_offset.top);
+            var scroll_left = parseInt(table.width()-cell_offset.left);
+
+            // arrow bottom
+            if (scroll_top < 0)
+            {
+                var scroll = table.scrollTop();
+                scroll     = (scroll + (scroll_top*(-1))+30);
+                table.scrollTop(scroll);
+            }
+            // arrow right
+            if (scroll_left < s_cell.outerWidth())
+            {
+                var scroll = table.scrollLeft();
+                scroll     = (scroll + (scroll_left*(-1))+20)+s_cell.outerWidth();
+                table.scrollLeft(scroll);
+            }
+            // arrow top
+            if ((table.height()-96)-scroll_top < 0)
+            {
+                var scroll = table.scrollTop();
+                scroll     = scroll + ((table.height()-96)-scroll_top)-1;
+                table.scrollTop(scroll);
+            }
+            // arrow left
+            if (scroll_left > (table.width()-c_table_w))
+            {
+                var scroll = table.scrollLeft();
+                scroll     = scroll + ((table.width()-c_table_w) - scroll_left);
+                table.scrollLeft(scroll);
+            }
         }
     };
 

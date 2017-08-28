@@ -144,4 +144,19 @@ td.selected
 {
     background-color: #E5E5E5 !important;
 }
+td.edition
+{
+    position: relative;
+}
+textarea.jsheet-text
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    word-break:break-all;
+}
 
