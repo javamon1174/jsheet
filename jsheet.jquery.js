@@ -19,27 +19,28 @@
     // defaults 는 한번만 생성합니다.
     var pluginName = 'jsheet',
         defaults = {
-            version: "1.10", // plugin version
-            dataMethod: "ajax", // How to import data
-            dataType: "json", // Content-Type
-            parseURL: "/dev/data.json", // How to import data
-            autoCommit: true, // Post-Work DOM Rendering Use or not
-            headerGroup: true, // table top header Use or not
-            fixedHeader: true, // table fixed header Use or not
-            fixedColumn: true, // table fixed column Use or not
-            fixedCount: 3, // table fixed column count
-            controllerBar: true, // Cell control bar Use or not
-            controllerBarItem: [ // glyphicon
-                "save",
-                "pencil",
-                "align-left",
-                "align-center",
-                "align-right",
-                "tasks",
+            version:           "1.10",           // plugin version
+            dataMethod:        "ajax",           // How to import data
+            dataType:          "json",           // Content-Type
+            parseURL:          "/dev/data.json", // How to import data
+            autoCommit:        true,             // Post-Work DOM Rendering Use or not
+            headerGroup:       true,             // table top header Use or not
+            fixedHeader:       true,             // table fixed header Use or not
+            fixedColumn:       true,             // table fixed column Use or not
+            fixedCount:        3,                // table fixed column count2
+            controllerBar:     true,             // Cell control bar Use or not
+            controllerBarItem:
+            [ // glyphicon
+                               "save",
+                               "pencil",
+                               "align-left",
+                               "align-center",
+                               "align-right",
+                               "tasks",
             ],
-            filter: true, // table Filter Use or not
-            data: null,
-            history: [],
+            filter:             true, // table Filter Use or not
+            data:               null,
+            history:            [],
         };
 
     // plugin constructor
@@ -55,6 +56,8 @@
 
         this._defaults = defaults;
         this._name = pluginName;
+
+        this._select = JSON.parse('[{"SEQ":"1","NAME":"Ready"},{"SEQ":"2","NAME":"Wip"},{"SEQ":"3","NAME":"Rescan"},{"SEQ":"4","NAME":"Change"},{"SEQ":"5","NAME":"Out"},{"SEQ":"6","NAME":"Sim"},{"SEQ":"7","NAME":"2D Fin"},{"SEQ":"8","NAME":"Retake"},{"SEQ":"9","NAME":"S3D Retake"},{"SEQ":"10","NAME":"Fin"},{"SEQ":"11","NAME":"S3D Fin"},{"SEQ":"12","NAME":"Omit"},{"SEQ":"13","NAME":"No CG"},{"SEQ":"14","NAME":"Hold"},{"SEQ":"15","NAME":"Add"}]');
 
         this.init();
     }
@@ -80,9 +83,9 @@
         if (this.options.dataMethod) {
             // get data
             this.func(this.options.dataMethod, {
-                url: this.options.parseURL,
-                func: "deaultLender2Element",
-                data: this.options.data,
+                url           : this.options.parseURL,
+                func          : "deaultLender2Element",
+                data          : this.options.data,
                 loader_options: loader_options,
             });
         }
@@ -138,7 +141,7 @@
                 tmp_group_name = "",
                 col_span       = 1;
 
-            // 헤더 데이터 드로잉 반복문
+            // 헤더 데이터 반복문
             for (var idx in col_data) {
                 var info     = JSON.parse(col_data[idx]["CHANGE_COLUMN_INFO"]);
                 var th_group = document.createElement("TH");
@@ -225,23 +228,38 @@
     };
 
     // Create Table Body Element / 테이블 바디 생성
-    Plugin.prototype.createBody = function() {
-        var table_warp_div = document.createElement("DIV");
-        var table_warp_body_div = document.createElement("DIV");
-        var table          = document.createElement("TABLE");
+    Plugin.prototype.createBody  = function() {
+        var table_warp_div       = document.createElement("DIV"),
+            table_warp_body_div  = document.createElement("DIV"),
+            table                = document.createElement("TABLE"),
+            tbody                = document.createElement("TBODY"),
+            r                    = this.options.data.row_data;
 
         table_warp_div.className = "jsheet-table-body-warp";
-        table.className = "jsheet-table-body";
+        table.className          = "jsheet-table-body";
 
-        var tbody = document.createElement("TBODY");
-        var r     = this.options.data.row_data;
+        // custom - select
+        if (this._select)
+        {
+            var select = document.createElement("SELECT");
+            select.className = "form-control cell-selector";
+
+            for (var o_idx in this._select) {
+                var o       = document.createElement("OPTION");
+                o.value     = this._select[o_idx]["SEQ"];
+                o.innerHTML = this._select[o_idx]["NAME"];
+
+                select.appendChild(o);
+            }
+        }
 
         // 행 드로잉 반복문
         for (var i in r) {
             var tr   = document.createElement("TR");
             var c_d  = r[i]["ROW_LIST"];
             // 열 드로잉 반복문
-            for (var c_i in c_d) {
+            for (var c_i in c_d)
+            {
                 var td   = document.createElement("TD");
                 var info = JSON.parse(c_d[c_i]["CHANGE_COLUMN_INFO"])
 
@@ -250,11 +268,30 @@
                 td.dataset.type       = info["TYPE"];
                 td.style.minWidth     = info["WIDTH"]+"px";
                 td.style.maxWidth     = info["WIDTH"]+"px";
-                td.innerHTML          = c_d[c_i]["DATA"];
 
-                if (info["FIXED"] == "Y") $(td).addClass('fixed-cell');
+                // cell custom according to type
+                switch (info["TYPE"]) {
+                    case "select":
+                        // var s = $(select).clone();
+                        $(td).html($(select).clone().val(c_d[c_i]["DATA"]));
+                        break;
+                    case "media":
+                    // var img = '<img class="cell-media" src="data/'+c_d[c_i]["DATA"]+'"'
+                    //         +' onerror="this.src=\'/assets/img/no_image_150x100.gif\';" style="height:80px;">'
+                    //         +'</img>';
 
-                if (info["TYPE"] != "text" && info["TYPE"] != "textarea") $(td).addClass('disable');
+                    var img = '<img class="cell-media" src="/assets/img/no_image_150x100.gif" style="height:80px;">'+'</img>';
+                        td.innerHTML = img;
+                        td.style.textAlign = "center";
+                        break;
+                    default:
+                        td.innerHTML          = c_d[c_i]["DATA"];
+                }
+
+                if (c_i < parseInt(this.options.fixedCount)) $(td).addClass('fixed-cell');
+                if (info["TYPE"] != "text") $(td).addClass('disable');
+                // if (info["TYPE"] != "text" && info["TYPE"] != "textarea") $(td).addClass('disable');
+
                 tr.appendChild(td);
             }
             tbody.appendChild(tr);
@@ -274,9 +311,8 @@
             c_table.className = "jsheet-table-body-fixed";
 
             for (var i = 0; i < for_idx; i++) {
-                // console.log($(fixed_th[i]).height());
                 tr_col.appendChild(fixed_th[i]);
-                if (((i+1) % 3) === 0 )
+                if (((i+1) % parseInt(this.options.fixedCount)) === 0 )
                 {
                     tbody.appendChild(tr_col);
                     tr_col = document.createElement("TR")
@@ -335,6 +371,10 @@
             {
                 evt.preventDefault();
                 self.contextMenuEvent(this.id);
+            },
+            dblclick    : function ()
+            {
+                self.edit(this.id);
             }
         });
 
@@ -342,6 +382,7 @@
         self.setKeyEvent();
     };
 
+    // remove event of element / 엘리먼트에 부여된 이벤트 제거
     Plugin.prototype.clearEvent = function(element, evt) {
         return $(element).off(evt);
     };
@@ -366,7 +407,7 @@
             $(fixed_td[i]).prop("id", "r"+fixed_row_count+"_c"+fixed_col_count);
 
             fixed_col_count++;
-            if ((i%this.options.fixedCount) == (this.options.fixedCount - 1))
+            if ((i % parseInt(this.options.fixedCount)) == (parseInt(this.options.fixedCount) - 1))
             {
                 fixed_col_count = 0;
                 fixed_row_count++;
@@ -469,9 +510,11 @@
                                 self.undo();
                             }
                             break;
-
                         case 27:    // ESC
-                            self.cancel();
+                                self.cancel();
+                            break;
+                        case 46:    // DELETE
+                                self.empty($(".selected").attr("id"));
                             break;
                 }
             }
@@ -509,25 +552,55 @@
     Plugin.prototype.trVerticalSizeSync = function(cell) {
         var height = cell.outerHeight();
         var _class = cell[0].classList;
-        $(".jsheet-table-body").find("."+_class[0]).first().closest("TR").height(height);
-        $(".jsheet-table-body-fixed").find("."+_class[0]).first().closest("TR").height(height);
-        // console.log(cell.className);
+        $(".jsheet-table-body")
+            .find("."+_class[0])
+            .first()
+            .closest("TR")
+            .height(height);
+
+        $(".jsheet-table-body-fixed")
+            .find("."+_class[0]).
+            first()
+            .closest("TR")
+            .height(height);
     };
 
+    // 셀 비우기
+    Plugin.prototype.empty = function(cell_id) {
+        if (!cell_id) return false;
 
-    Plugin.prototype.save = function(cell_id) {
-        if ($(".edition").length == 0) return false;
-
-        // 저장 시 현재 셀의 Tr height를 타 테이블에 적용
         var s_cell = $("TD#"+cell_id);
 
-        if (s_cell.hasClass('disable'))
+        if (!s_cell.hasClass('disable'))
         {
-            console.log("custom");
+            // var undo_data = JSON.stringify(s_cell.html().replace(/\n/g, "<br>"));
+            var undo_data = JSON.stringify(s_cell.html());
+            s_cell.html("");
         }
-        else
+
+        //history push
+        if (undo_data)
         {
-            var text_val  = $(".jsheet-text").val().replace(/\n/g, "<br>");
+            this.func("historyPush", {
+                cell : cell_id,
+                data : undo_data,
+            });
+        };
+
+        // 저장 시 현재 셀의 Tr height를 타 테이블에 적용
+        return this.func("trVerticalSizeSync", s_cell);
+    };
+
+    // 셀 저장
+    Plugin.prototype.save = function(cell_id, text_val = "") {
+        if ($(".edition").length == 0) return false;
+
+        var s_cell = $("TD#"+cell_id);
+
+        if (!s_cell.hasClass('disable'))
+        // { console.log("custom"); } else
+        {
+            text_val  = $(".jsheet-text").val().replace(/\n/g, "<br>");
             var undo_data = $(".jsheet-text").attr("data-ori-text").replace(/\n/g, "<br>");
 
             $(s_cell).html(text_val).removeClass('edition');
@@ -541,12 +614,164 @@
                 data : undo_data,
             });
         };
+
+        // 저장 시 현재 셀의 Tr height를 타 테이블에 적용
         return this.func("trVerticalSizeSync", s_cell);
     };
 
+    Plugin.prototype.isSetLayer2Body = function(inner_html, s_cell = null) {
+        // init layer
+        $(".jsheet-dimmed").remove();
+
+        var dim         = document.createElement("DIV"),
+            layer       = document.createElement("DIV");
+
+        dim.className   = "jsheet-dimmed";
+        dim.onclick = function() {
+            this.remove();
+        };
+
+        layer.className = "jsheet-layer";
+        layer.onclick = function() {
+            event.stopPropagation();
+        };
+
+        $(layer).html(inner_html);
+        $(dim).html(layer);
+
+        $("body").append(dim);
+
+        // return layer append result => true or false / 레이어 append 결과 반환
+        return ($(".jsheet-dimmed").length == 1);
+     }
+
+    Plugin.prototype.editFileText = function(s_cell) {
+        var self = this;
+
+        var html =
+         '<div class="panel panel-default">'
+        +'  <div class="panel-heading">File &amp; Text Editor</div>'
+        +'  <div class="panel-body">'
+        +'      <form>'
+        +'          <div class="form-group">'
+        +'              <img id="layer-editor-img" src="/assets/img/no_image_150x100.gif" style="width: 150px; height: 100px;">'
+        +'          </div>'
+        +'          <div class="form-group">'
+        +'              <input class="layer-editor-file" type="file" name="image_upload_input" id="layer-editor-file">'
+        +'          </div>'
+        +'          <div class="form-group">'
+        +'              <textarea class="form-control vresize" rows="5" name="comment" id="layer-editor-text"></textarea>'
+        +'              <label class="checkbox-inline"><input type="checkbox" name="img_rm_chkbox" id="layer-editor-img-rm" value="">기존 이미지 삭제</label>'
+        +'          </div>'
+        +'          <div class="form-group">'
+        +'              <a class="btn btn-danger pull-left" id="layer-editor-cancel">취소</a>'
+        +'              <a class="btn btn-info pull-right" id="layer-editor-submit">입력</a>'
+        +'          </div>'
+        +'      </form>'
+        +'</div></div>';
+
+        if (this.isSetLayer2Body(html, s_cell))
+        {
+            return (function ()
+            { // set layer event / 즉시 실행함수 패턴 => 레이어마다 해당 부분에 이벤트 정의
+                $("#layer-editor-file").on('change', function () {
+                    if (typeof (FileReader) != "undefined")
+                    {
+                        var image_holder = $("#layer-editor-img");
+                        var reader = new FileReader();
+                        reader.onload = function (e)
+                        {
+                            image_holder.attr("src", e.target.result);
+                        }
+                        reader.readAsDataURL($(this)[0].files[0]);
+                    }
+                    else
+                    {
+                        alert("해당 브라우저는 현재 기능을 지원하지 않습니다.");
+                    }
+                });
+
+                $("#layer-editor-cancel").on("click", function () {
+                    self.closeLayer();
+                });
+
+                $("#layer-editor-submit").on("click", function () {
+                    var $this = $( ".jsheet-layer" ).find( "form" );
+
+                    if ($this.find("textarea").val() == "" && $this.find("input").val() == "")
+                    {
+                        alert("이미지 또는 내용이 입력되지 않았습니다."); return ;
+                    }
+                    if (confirm("해당 내용을 저장하시겠습니까?") == false) { return ; }
+
+                    var formData = new FormData();
+                    var imageObject = $this.find( "input" ).get(0).files[0];
+
+                    if (typeof(imageObject) != "undefined" )
+                    {
+                        formData.append('media_file', imageObject);
+                    }
+
+                    formData.append('project_seq', self.getUrlParams("project_seq"));
+                    formData.append('cglist_seq', s_cell.data("cglist_seq"));
+                    formData.append('column_seq', s_cell.data("column_seq"));
+                    formData.append('cell_data', $this.find("textarea").val().replace(/\n/g, "<br />"));
+
+                    //이미지 삭제 체크 버튼 활성화 되어있을 때 && 이미지가 업로드 안되었을 때만
+                    if ($this.find("#img_rm_chkbox").prop("checked") && typeof(imageObject) == "undefined" )
+                    {
+                        formData.append('file_delete_yn', "Y");
+                    }
+
+                    var loader_options = {
+                        target        : ".panel-heading",
+                        type          : "inner",
+                        spin_second   : "0.5s",
+                        width         : "10px",
+                        height        : "10px",
+                        loader_margin : "0px 10px 0px 0px"
+                    };
+
+                    return this.func("ajax", {
+                        url           : "/works/cglist/cell_save_process",
+                        func          : "save",
+                        data          : formData,
+                        loader_options: loader_options,
+                    });
+                });
+            })();
+        }
+        return ;
+     }
+
+     Plugin.prototype.getUrlParams = function(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results) return results[1] || 0;
+     }
+
+    Plugin.prototype.closeLayer = function() {
+         $(".jsheet-dimmed").remove();
+    }
+
+    Plugin.prototype.editTaskMember = function(s_cell) {
+        console.log("editTaskMember");
+        console.log(s_cell);
+     }
+
+    Plugin.prototype.setTaskMemberLayer = function() {
+        console.log("setTaskMemberLayer");
+    }
+
+    Plugin.prototype.changeImage = function(s_cell) {
+        console.log("changeImage");
+        console.log(s_cell);
+     }
+
     Plugin.prototype.edit = function(cell_id) {
+        var self = this;
+
         //init
-        this.func("cancel");
+        self.func("cancel");
 
         if ($("TD#"+cell_id).hasClass('edition')) { return ; }
 
@@ -554,8 +779,18 @@
         var s_cell = $("TD#"+cell_id);
 
         if (s_cell.hasClass('disable'))
-        {   // custom
-            console.log("custom");
+        {   // custom cell event
+            switch (s_cell.data("type")) {
+                case "textarea":
+                    self.editFileText(s_cell);
+                    break;
+                case "member":
+                    self.editTaskMember(s_cell);
+                    break;
+                case "media":
+                    self.changeImage(s_cell);
+                    break;
+            }
         }
         else
         {   // text
@@ -639,12 +874,6 @@
         }
     };
 
-    // 수정된 엘리먼트 렌더링
-    Plugin.prototype.domLender = function(info) {
-        console.log("domLender");
-        console.log(info);
-    };
-
     // html 테이블에서 데이터를 파싱
     Plugin.prototype.parser = function() {
     };
@@ -659,11 +888,12 @@
 
         // table cell height 동기화 (original - cloned table)
         $(".jsheet-table-body").find("tr").each(function(index, el) {
-            $( ".fixed-cell:nth-child("+index+")" ).height($(el).height());
+            $( ".fixed-cell:nth-child("+index+")" ).outerHeight($(el).outerHeight());
         });
     };
 
     Plugin.prototype.ajax = function(info) {
+        // Load json external file
         var _plugin = this;
 
         return $.ajax({
